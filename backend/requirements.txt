@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+sqlalchemy
+pydantic
+pydantic-settings
+python-multipart
+passlib[bcrypt]
+jose
+redis
+httpx
+aioredis
+python-dotenv
+requests

@@ -1,73 +1,170 @@
-# HybridLLMGateway
+# Hybrid LLM Gateway
 
-HybridLLMGateway 是一款专为中小型技术团队设计的开源大模型调用网关。它不仅提供多供应商接入、权限控制与限流，更核心的功能在于其离在线混部调度机制，旨在极小化算力闲置，最大化提升整体吞吐量。
+企业级大模型调用网关，服务于中小型技术团队，开源可部署。
 
-## 🚀 核心价值：削峰填谷
+## 功能特性
 
-中小型团队通常面临两难：
+### 核心功能
+- **模型供应商接入**：支持OpenAI、Anthropic、Gemini、DeepSeek等主流模型供应商
+- **调用分类支持**：
+  - 实时型调用：C端用户等待，需要立即返回
+  - 任务型调用：每天/周需要完成多少数量任务的计算，只要完成即可，不要求立即返回
+- **智能资源调度**：
+  - 当有C端请求时，减少任务调用
+  - 当服务空闲时，增大任务调用
+  - 大量任务调用导致延迟较高时，C端任务可立即抢占算力资源
 
-为高峰买单：为了保证 C 端用户实时体验，预留大量算力，导致低谷期资源浪费。
+### 辅助功能
+- **权限管理**：基于JWT的用户认证和API密钥管理
+- **限流保护**：基于Redis的IP限流
+- **监控统计**：系统状态监控和请求统计
+- **多租户支持**：用户级别的请求隔离
 
-任务积压：大量的离线数据处理（如知识库向量化、报表分析）无法利用碎片时间高效完成。
+## 技术栈
 
-**Fluxion 通过优先级抢占算法解决此问题：**
+### 后端
+- **框架**：FastAPI
+- **数据库**：SQLite（可扩展为PostgreSQL/MySQL）
+- **缓存**：Redis
+- **认证**：JWT + API Key
+- **ORM**：SQLAlchemy
 
-C 端请求（实时型）：拥有最高优先级，随到随走，立即抢占算力。
+### 前端（待实现）
+- **框架**：React + Vite
+- **UI组件库**：Ant Design
+- **状态管理**：Zustand
+- **API请求**：Axios
 
-任务请求（离线型）：自动填充算力空隙。当系统检测到实时请求减少时，自动加速处理积压任务；当实时请求涌入时，自动挂起或限缩任务并发。
+## 项目结构
 
-## ✨ 主要功能
+```
+HybridLLMGateway/
+├── backend/                # 后端服务
+│   ├── app/                # 应用代码
+│   │   ├── api/            # API路由
+│   │   ├── db/             # 数据库配置和模型
+│   │   ├── middleware/     # 中间件
+│   │   ├── services/       # 业务逻辑服务
+│   │   └── main.py         # 主应用入口
+│   ├── config/             # 配置文件
+│   └── requirements.txt    # 依赖列表
+├── frontend/               # 前端管理端（待实现）
+└── README.md               # 项目文档
+```
 
-🔌 多模型适配：一键接入 OpenAI, Claude, 智谱 AI, 通义千问, Llama (Ollama/vLLM) 等。
+## 快速开始
 
-⚖️ 动态调度引擎：基于响应延迟（Latency）和并发度（Concurrency）的实时反馈机制，动态调整离线任务权重。
+### 后端部署
 
-⚡ 优先级抢占：内置双层队列，确保实时请求在毫秒级内获得算力响应，不受离线大批量任务阻塞。
-
-### 🛡️ 企业级控制：
-
-多租户管理：不同项目组配置独立的 API Key 和配额。
-
-精细限流：支持 RPM (每分钟请求数) 和 TPM (每分钟 Token 数) 限制。
-
-成本审计：记录详细的调用日志，统计各部门消耗成本。
-
-### 📦 轻量化部署：纯 Python 开发，支持 Docker 一键部署，对环境依赖极低。
-
-## 🏗️ 架构概览
-Plaintext
-
-[ 客户端/应用层 ]
-      |
-      ▼
-[ Fluxion Gateway ]
-  /        \
- [实时队列] [任务队列]  <-- 动态调度器 (Dynamic Scheduler)
-  \        /
-      ▼
-[ 模型服务商 (API/本地推理) ]
-
-## 🛠️ 快速开始
-
-1. 环境准备
-Bash
-
-python 3.10+
-redis 6.0+ (用于状态同步与队列管理)
-2. 安装与运行
-Bash
-
-git clone https://github.com/yourname/fluxion.git
-cd fluxion
+1. **安装依赖**
+```bash
+cd backend
 pip install -r requirements.txt
+```
 
-配置你的模型 API Key
+2. **配置环境变量**
+```bash
+cp .env.example .env
+# 编辑.env文件，配置数据库、Redis等信息
+```
 
-cp config.example.yaml config.yaml
+3. **启动服务**
+```bash
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
 
-启动服务
+4. **访问API文档**
+```
+http://localhost:8000/docs  # Swagger UI
+http://localhost:8000/redoc  # ReDoc
+```
 
-python main.py
+### 前端部署（待实现）
 
-📈 性能预期
-在典型测试环境下，Fluxion 相比于传统的静态限流网关，在处理同等规模的离线任务时，硬件资源利用率可提升 40% - 60%，同时保证 C 端请求的 P99 延迟波动小于 5%。
+## API使用示例
+
+### 1. 用户注册
+```bash
+curl -X POST "http://localhost:8000/api/auth/register" \
+  -H "Content-Type: application/json" \
+  -d '{"username": "testuser", "email": "test@example.com", "password": "password123"}'
+```
+
+### 2. 用户登录
+```bash
+curl -X POST "http://localhost:8000/api/auth/token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=testuser&password=password123"
+```
+
+### 3. 创建模型配置
+```bash
+curl -X POST "http://localhost:8000/api/model/" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"provider": "openai", "model_name": "gpt-3.5-turbo", "api_key": "sk-xxx"}'
+```
+
+### 4. 发送实时请求
+```bash
+curl -X POST "http://localhost:8000/api/request/" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"model_config_id": 1, "prompt": "Hello, world!", "request_type": "realtime"}'
+```
+
+### 5. 发送任务型请求
+```bash
+curl -X POST "http://localhost:8000/api/request/" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"model_config_id": 1, "prompt": "Generate a report", "request_type": "task"}'
+```
+
+## 架构设计
+
+### 调用流程
+
+1. **请求接收**：FastAPI接收客户端请求
+2. **认证鉴权**：验证API密钥或JWT令牌
+3. **请求分类**：区分实时型和任务型请求
+4. **资源调度**：
+   - 实时请求：立即分配资源处理
+   - 任务请求：加入任务队列，根据系统负载动态分配资源
+5. **模型调用**：调用相应的模型供应商API
+6. **结果返回**：
+   - 实时请求：立即返回结果
+   - 任务请求：返回任务ID，后续可查询状态
+7. **状态更新**：更新请求状态和统计信息
+
+### 资源调度策略
+
+- **优先级机制**：实时请求优先级高于任务请求
+- **动态调整**：
+  - 有实时请求时，减少任务型请求的并发数
+  - 服务空闲时，增加任务型请求的并发数
+  - 延迟过高时，进一步减少任务型请求
+- **抢占机制**：高优先级请求可抢占低优先级请求的资源
+
+## 监控和统计
+
+- **系统状态**：活跃请求数、队列长度、平均延迟
+- **请求统计**：总请求数、成功率、响应时间分布
+- **资源使用**：CPU、内存、网络等系统资源使用情况
+
+## 扩展建议
+
+1. **数据库扩展**：将SQLite替换为PostgreSQL或MySQL，支持更大规模的数据
+2. **缓存优化**：使用Redis集群提高缓存可靠性
+3. **负载均衡**：部署多个网关实例，使用Nginx进行负载均衡
+4. **监控增强**：集成Prometheus + Grafana，实现更全面的监控
+5. **日志系统**：集成ELK或Loki，实现日志集中管理和分析
+6. **CI/CD**：配置GitHub Actions或GitLab CI，实现自动化测试和部署
+
+## 许可证
+
+MIT License
+
+## 贡献
+
+欢迎提交Issue和Pull Request！
