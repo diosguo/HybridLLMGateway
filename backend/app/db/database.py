@@ -9,6 +9,11 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "your-secret-key"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    
+    # 系统配置
+    MAX_CONCURRENT_REQUESTS: int = 10
+    TASK_REQUEST_CAP: int = 5
+    LATENCY_THRESHOLD: int = 500
 
     class Config:
         env_file = ".env"

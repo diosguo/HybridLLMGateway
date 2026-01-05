@@ -1,10 +1,13 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from app.db.database import get_db, engine
+from app.db.database import get_db, engine, settings
 from app.db import models
 from app.middleware.rate_limit import RateLimitMiddleware
 from app.middleware.api_key_auth import APIKeyAuthMiddleware
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from app.services.request_scheduler import RequestScheduler
+from app.api.request import request_scheduler
 
 # 创建数据库表
 models.Base.metadata.create_all(bind=engine)
@@ -45,3 +48,26 @@ async def root():
 @app.get("/health")
 async def health_check(db: Session = Depends(get_db)):
     return {"status": "healthy", "database": "connected"}
+
+# 初始化定时任务调度器
+scheduler = AsyncIOScheduler()
+
+# 添加定时任务：每5秒更新一次系统统计
+@scheduler.scheduled_job('interval', seconds=5)
+async def update_system_stats_job():
+    from app.db.database import SessionLocal
+    db = SessionLocal()
+    try:
+        await request_scheduler.update_system_stats(db)
+    finally:
+        db.close()
+
+# 启动定时任务
+@app.on_event("startup")
+async def startup_event():
+    scheduler.start()
+
+# 关闭定时任务
+@app.on_event("shutdown")
+async def shutdown_event():
+    scheduler.shutdown()

@@ -3,11 +3,12 @@ from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.db import models
 from typing import Optional
+from starlette.middleware.base import BaseHTTPMiddleware
 
-class APIKeyAuthMiddleware:
+class APIKeyAuthMiddleware(BaseHTTPMiddleware):
     """API密钥认证中间件"""
     
-    async def __call__(self, request: Request, call_next):
+    async def dispatch(self, request: Request, call_next):
         # 跳过认证的路径
         skip_paths = [
             "/",
@@ -33,6 +34,8 @@ class APIKeyAuthMiddleware:
             )
         
         # 验证API密钥
+        from datetime import datetime
+        
         db = next(get_db())
         db_api_key = db.query(models.APIKey).filter(
             models.APIKey.key == api_key,
@@ -43,6 +46,13 @@ class APIKeyAuthMiddleware:
             raise HTTPException(
                 status_code=401,
                 detail="Invalid or expired API key"
+            )
+        
+        # 检查API密钥是否过期
+        if db_api_key.expires_at and db_api_key.expires_at < datetime.utcnow():
+            raise HTTPException(
+                status_code=401,
+                detail="API key has expired"
             )
         
         # 将用户ID添加到请求状态中，供后续使用

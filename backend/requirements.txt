@@ -11,3 +11,4 @@ httpx
 aioredis
 python-dotenv
 requests
+apscheduler

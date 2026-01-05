@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 import uuid
 from datetime import datetime
-from app.db.database import get_db
+from app.db.database import get_db, settings
 from app.db import models
 from app.api.auth import get_current_active_user
 from app.services.model_provider import ModelProviderService
@@ -14,7 +14,7 @@ router = APIRouter()
 
 # 初始化服务
 model_provider_service = ModelProviderService()
-request_scheduler = RequestScheduler()
+request_scheduler = RequestScheduler(settings)
 
 class LLMRequest(BaseModel):
     model_config_id: int
